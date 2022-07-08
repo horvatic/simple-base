@@ -1,1 +1,2 @@
-# simple-base
+# Simple Base
+A very simple document database
