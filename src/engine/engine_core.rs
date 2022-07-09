@@ -4,7 +4,7 @@ use std::thread;
 #[path="../network/mod.rs"]
 mod network;
 
-fn handle_session(mut session: network::session::Session) {
+fn handle_session(mut session: impl network::session::Session) {
     loop {
         match session.read() {
             Ok((data, status)) => {
@@ -29,7 +29,7 @@ pub fn run() {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                let session = network::session::Session::new(stream);
+                let session: network::session::UserSession = network::session::Session::new(stream);
                 thread::spawn(move || {
                     handle_session(session);
                 });

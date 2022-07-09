@@ -3,7 +3,13 @@ use std::io::{Read, Write};
 
 const BUFFER_SIZE: usize = 128;
 
-pub struct Session {
+pub trait Session {
+    fn new(stream: TcpStream) -> Self;
+    fn write(&mut self, write_data: Packet) -> SessionStatus;
+    fn read(&mut self) -> Result<(Packet, SessionStatus), SessionStatus>;
+}
+
+pub struct UserSession {
     stream: TcpStream,
     data: [u8; BUFFER_SIZE]
 }
@@ -18,12 +24,12 @@ pub enum SessionStatus {
     Error
 }
 
-impl Session {
-    pub fn new(stream: TcpStream) -> Self {
+impl Session for UserSession {
+    fn new(stream: TcpStream) -> Self {
         Self { stream, data: [0 as u8; 128] }
     }
 
-    pub fn write(&mut self, write_data: Packet) -> SessionStatus {
+    fn write(&mut self, write_data: Packet) -> SessionStatus {
         match self.stream.write(write_data.data.unwrap().as_ref()) {
             Ok(size) => {
                 if size == 0 {
@@ -37,7 +43,7 @@ impl Session {
         }
     }
 
-    pub fn read(&mut self) -> Result<(Packet, SessionStatus), SessionStatus> {
+    fn read(&mut self) -> Result<(Packet, SessionStatus), SessionStatus> {
         match self.stream.read(&mut self.data) {
             Ok(size) => {
                 if size == 0 { 
