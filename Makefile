@@ -1,9 +1,9 @@
 .PHONY: build
 .NOTPARALLEL:
 build: clean
-	rustc src/main.rs
+	cargo build
 
 .PHONY: clean
 .NOTPARALLEL:
 clean:
-	rm -rf main
+	cargo clean
