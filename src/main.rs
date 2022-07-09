@@ -1,5 +1,5 @@
-mod network;
+mod engine;
 
-fn main() -> std::io::Result<()> {
-    network::connection::listen()
+fn main() {
+    engine::engine_core::run()
 }
