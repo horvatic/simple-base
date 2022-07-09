@@ -14,6 +14,7 @@ fn handle_connection(mut stream: TcpStream) {
             }
             Err(_) => { 
                 println!("Error");
+                break;
             }
         }
     }
