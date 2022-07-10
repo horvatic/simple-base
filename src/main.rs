@@ -1,5 +1,5 @@
-mod engine;
+use ::simple_base::engine;
 
 fn main() {
-    engine::engine_core::run()
+    engine::runner::run()
 }
