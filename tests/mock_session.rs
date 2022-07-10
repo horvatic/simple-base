@@ -15,7 +15,7 @@ impl session::Session for MockSession {
     }
 
     fn read(&mut self) -> Result<(session::Packet, session::SessionStatus), session::SessionStatus> {
-        let vec: Vec<u8> = vec!(u8::from_str_radix("A", 16).unwrap());
-        return Ok((session::new_packet(Some(vec)), session::SessionStatus::Open))
+        let sample_data = "A".as_bytes();
+        return Ok((session::new_packet(Some(sample_data.to_vec())), session::SessionStatus::Open))
     }
 }

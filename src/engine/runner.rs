@@ -25,11 +25,10 @@ impl Runner {
 }
 
 pub fn spawn_session(runner: Cell<Runner>, stream: TcpStream) {
-    let session = Box::new(session::new_user_session(stream));
     thread::spawn(move || {
-        let mut engine_user_session = engine_session::EngineSession::new(session);
+        let mut session = session::new_user_session(stream);
         while runner.get().status() {
-            engine_user_session.handle_session();
+            engine_session::handle_session(&mut session);
         }
     });
 }
