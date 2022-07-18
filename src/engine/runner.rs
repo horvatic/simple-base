@@ -28,7 +28,10 @@ pub fn spawn_session(runner: Cell<Runner>, stream: TcpStream) {
     thread::spawn(move || {
         let mut session = session::new_user_session(stream);
         while runner.get().status() {
-            engine_session::handle_session(&mut session);
+            let result = engine_session::handle_session(&mut session);
+            if matches!(result, session::SessionStatus::Closed) {
+                return;
+            }
         }
     });
 }

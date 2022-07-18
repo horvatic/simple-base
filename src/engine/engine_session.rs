@@ -1,18 +1,30 @@
 use crate::network::session;
 use crate::engine::command_processor;
 
-pub fn handle_session(session: &mut impl session::Session) {
+pub fn handle_session(session: &mut impl session::Session) -> session::SessionStatus {
     match session.read() {
         Ok((data, status)) => {
             if matches!(status, session::SessionStatus::Closed) {
-                return;
+                return session::SessionStatus::Closed;
             }
-            let result = command_processor::process(data.get_data());
-            session.write(session::new_packet(Some(result.as_str().unwrap().as_bytes().to_vec())));
+            match command_processor::process(data.get_data()) {
+                Ok(result) => {      
+                    let mut message = result.to_string();
+                    message.push_str("\n\n");
+                    session.write(session::new_packet(Some(message.as_bytes().to_vec())));
+                    return session::SessionStatus::Open;
+                },
+                Err(_) => {
+                    let message = "error\n\n";
+                    session.write(session::new_packet(Some(message.as_bytes().to_vec())));
+                    return session::SessionStatus::Open;
+                },
+            }
+
         }
         Err(status) => {
             match status {
-                session::SessionStatus::Error => print!("Error while reading"),
+                session::SessionStatus::Error => panic!("Error while reading"),
                 _ => panic!()
             }
         }
@@ -61,19 +73,21 @@ mod tests {
     fn read_write_close_successfully() {
         let mut mock_session = MockSession::new();
         let command = json!({
-            "command": "info"
+            "command": "where"
         });
+        let expected = "{\"result\":\"run where\"}\n\n";
         mock_session.set_read_return(command.to_string(), session::SessionStatus::Open);
     
         super::handle_session(&mut mock_session);
     
         match mock_session.write_data.get_data() {
             Some(v) => {
-                assert_eq!(String::from_utf8(v).unwrap(), command.to_string());
+                assert_eq!(String::from_utf8(v).unwrap(), expected.to_string());
             }
             None => assert!(false, "A was not read, or write too"),
         }
     }
+    
     
     #[test]
     fn read_close_successfully() {
