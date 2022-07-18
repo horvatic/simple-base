@@ -17,6 +17,7 @@ pub struct Packet {
     data: Option<Vec<u8>>
 }
 
+#[derive(Copy, Clone)]
 pub enum SessionStatus {
     Open,
     Closed,
