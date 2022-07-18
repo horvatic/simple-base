@@ -59,6 +59,10 @@ impl Session for UserSession {
                 if size == 0 { 
                     return Ok((new_packet(None), SessionStatus::Closed))
                 }
+                else if String::from_utf8(self.data[0..size].to_vec()).unwrap() == "exit\n" {
+                    return Ok((new_packet(None), SessionStatus::Closed))
+                }
+
                 return Ok((new_packet(Some(self.data[0..size].to_vec())), SessionStatus::Open));
             }
             Err(_) => { 
