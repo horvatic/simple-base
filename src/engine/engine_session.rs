@@ -1,12 +1,14 @@
 use crate::network::session;
+use crate::engine::command_processor;
 
 pub fn handle_session(session: &mut impl session::Session) {
     match session.read() {
         Ok((data, status)) => {
             if matches!(status, session::SessionStatus::Closed) {
-                return ;
+                return;
             }
-            session.write(data);
+            let result = command_processor::process(data.get_data());
+            session.write(session::new_packet(Some(result.as_str().unwrap().as_bytes().to_vec())));
         }
         Err(status) => {
             match status {
@@ -20,6 +22,7 @@ pub fn handle_session(session: &mut impl session::Session) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     pub struct MockSession {
         pub write_data: session::Packet,
@@ -57,14 +60,16 @@ mod tests {
     #[test]
     fn read_write_close_successfully() {
         let mut mock_session = MockSession::new();
-        mock_session.set_read_return("A".to_string(), session::SessionStatus::Open);
+        let command = json!({
+            "command": "info"
+        });
+        mock_session.set_read_return(command.to_string(), session::SessionStatus::Open);
     
         super::handle_session(&mut mock_session);
     
         match mock_session.write_data.get_data() {
             Some(v) => {
-                let s = String::from_utf8(v).unwrap();
-                assert_eq!(s, "A")
+                assert_eq!(String::from_utf8(v).unwrap(), command.to_string());
             }
             None => assert!(false, "A was not read, or write too"),
         }
