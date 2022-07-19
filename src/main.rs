@@ -12,5 +12,7 @@ fn main() {
             Ok(_) => engine::runner::run(addr),
             Err(_) => panic!("Can not make dir"),
         }
+    } else {
+        engine::runner::run(addr);
     }
 }
