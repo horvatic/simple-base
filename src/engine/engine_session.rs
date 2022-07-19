@@ -1,22 +1,20 @@
 use crate::network::session;
-use crate::engine::command_processor;
+use crate::network::packet;
+use serde_json::{Value, Result};
 
-pub fn handle_session(session: &mut impl session::Session) -> session::SessionStatus {
+pub fn handle_session(session: &mut impl session::Session, command_factory: fn(Option<Vec<u8>>) -> Result<(Value, fn(Value) -> Result<Value>)>) -> session::SessionStatus {
     match session.read() {
         Ok((data, status)) => {
             if matches!(status, session::SessionStatus::Closed) {
                 return session::SessionStatus::Closed;
             }
-            match command_processor::process(data.get_data()) {
-                Ok(result) => {      
-                    let mut message = result.to_string();
-                    message.push_str("\n\n");
-                    session.write(session::new_packet(Some(message.as_bytes().to_vec())));
-                    return session::SessionStatus::Open;
+            match command_factory(data.get_data()) {
+                Ok((result, cmd)) => {
+                    return run_command(session, result, cmd);
                 },
                 Err(_) => {
                     let message = "error\n\n";
-                    session.write(session::new_packet(Some(message.as_bytes().to_vec())));
+                    session.write(packet::new_packet(Some(message.as_bytes().to_vec())));
                     return session::SessionStatus::Open;
                 },
             }
@@ -31,20 +29,36 @@ pub fn handle_session(session: &mut impl session::Session) -> session::SessionSt
     }
 }
 
+fn run_command(session: &mut impl session::Session, request: Value, cmd: fn(Value) -> Result<Value>) -> session::SessionStatus {
+    match cmd(request) {
+        Ok(result) => {
+            let mut message = result.to_string();
+            message.push_str("\n\n");
+            session.write(packet::new_packet(Some(message.as_bytes().to_vec())));
+            return session::SessionStatus::Open;
+        },
+        Err(_) => {
+            let message = "error\n\n";
+            session.write(packet::new_packet(Some(message.as_bytes().to_vec())));
+            return session::SessionStatus::Open;
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
 
     pub struct MockSession {
-        pub write_data: session::Packet,
+        pub write_data: packet::Packet,
         pub read_return_data: String,
         pub read_return_status: session::SessionStatus
     }
 
     impl MockSession {
         pub fn new() -> Self {
-            return MockSession { write_data: session::new_packet(None), read_return_status: session::SessionStatus::Error, read_return_data: "".to_string() }
+            return MockSession { write_data: packet::new_packet(None), read_return_status: session::SessionStatus::Error, read_return_data: "".to_string() }
         }
 
         pub fn set_read_return(&mut self, sample_data: String, session_status: session::SessionStatus) {
@@ -54,18 +68,18 @@ mod tests {
     } 
 
     impl session::Session for MockSession {
-        fn write(&mut self, write_data: session::Packet) -> session::SessionStatus {
+        fn write(&mut self, write_data: packet::Packet) -> session::SessionStatus {
             self.write_data = write_data;
             return session::SessionStatus::Open;
         }
 
-        fn read(&mut self) -> Result<(session::Packet, session::SessionStatus), session::SessionStatus> {
+        fn read(&mut self) -> core::result::Result<(packet::Packet, session::SessionStatus), session::SessionStatus> {
             if matches!(self.read_return_status, session::SessionStatus::Error) {
                 return Err(session::SessionStatus::Error);
             }
             
             let sample_data = self.read_return_data.as_bytes();
-            return Ok((session::new_packet(Some(sample_data.to_vec())), self.read_return_status))
+            return Ok((packet::new_packet(Some(sample_data.to_vec())), self.read_return_status))
         }
     }
 
@@ -78,7 +92,14 @@ mod tests {
         let expected = "{\"result\":\"run where\"}\n\n";
         mock_session.set_read_return(command.to_string(), session::SessionStatus::Open);
     
-        super::handle_session(&mut mock_session);
+        super::handle_session(&mut mock_session, |_a| {
+            return Ok((json!("{}"), |_a| { 
+                serde_json::from_str(r#"
+                {
+                    "result": "run where"
+                }"#)
+            }))
+        });
     
         match mock_session.write_data.get_data() {
             Some(v) => {
@@ -94,7 +115,11 @@ mod tests {
         let mut mock_session = MockSession::new();
         mock_session.set_read_return("".to_string(), session::SessionStatus::Closed);
     
-        super::handle_session(&mut mock_session);
+        super::handle_session(&mut mock_session, |_a| {
+            return Ok((json!("{}"), |_a| { 
+                serde_json::from_str(r#"{}"#)
+            }))
+        });
     
         match mock_session.write_data.get_data() {
             Some(_) => {

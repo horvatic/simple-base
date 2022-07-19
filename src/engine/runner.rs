@@ -4,6 +4,7 @@ use std::cell::Cell;
 
 use crate::engine::engine_session;
 use crate::network::session;
+use crate::command::command_factory;
 
 #[derive(Copy, Clone)]
 pub struct Runner {
@@ -26,9 +27,9 @@ impl Runner {
 
 pub fn spawn_session(runner: Cell<Runner>, stream: TcpStream) {
     thread::spawn(move || {
-        let mut session = session::new_user_session(stream);
+        let mut session = session::UserSession::new(stream);
         while runner.get().status() {
-            let result = engine_session::handle_session(&mut session);
+            let result = engine_session::handle_session(&mut session, command_factory::build);
             if matches!(result, session::SessionStatus::Closed) {
                 return;
             }
@@ -36,8 +37,8 @@ pub fn spawn_session(runner: Cell<Runner>, stream: TcpStream) {
     });
 }
 
-pub fn run() {
-    let listener = TcpListener::bind("0.0.0.0:8080").unwrap();
+pub fn run(addr: &str) {
+    let listener = TcpListener::bind(addr).unwrap();
     let mut main_runner = Runner::new();
     for stream in listener.incoming() {
         match stream {
