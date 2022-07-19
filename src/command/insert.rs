@@ -14,10 +14,9 @@ pub fn insert_command(data: Value) -> Result<Value> {
     match File::create(path) {
         Ok(mut file) => {
             match file.write_all(data[DATA_KEY].to_string().as_bytes()) {
-                Ok(_) =>     return serde_json::from_str(r#"
-                {
-                    "result": "run insert"
-                }"#),
+                Ok(_) => { 
+                let message = format!("{{\"result\": \"run insert. id {}\"}}", id.to_string().as_str());
+                return serde_json::from_str(message.as_str())},
                 Err(_) => return serde_json::from_str(r#"
                 {
                     "result": "error running insert"
