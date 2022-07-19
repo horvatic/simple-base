@@ -1,0 +1,1 @@
+pub const DIR: &str = "data";
