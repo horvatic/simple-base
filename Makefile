@@ -2,6 +2,7 @@
 .NOTPARALLEL:
 build: clean
 	cargo build
+	
 
 .PHONY: test
 .NOTPARALLEL:
@@ -12,3 +13,4 @@ test: clean
 .NOTPARALLEL:
 clean:
 	cargo clean
+	rm -rf data
