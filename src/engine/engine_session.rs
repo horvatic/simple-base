@@ -1,6 +1,6 @@
 use crate::network::session;
 use crate::network::packet;
-use serde_json::{Value, Result};
+use serde_json::{json, Value, Result};
 
 pub fn handle_session(session: &mut impl session::Session, command_factory: fn(Option<Vec<u8>>) -> Result<(Value, fn(Value) -> Result<Value>)>) -> session::SessionStatus {
     match session.read() {
@@ -13,7 +13,8 @@ pub fn handle_session(session: &mut impl session::Session, command_factory: fn(O
                     return run_command(session, result, cmd);
                 },
                 Err(_) => {
-                    let message = "error\n\n";
+                    let mut message = json!({ "result" : "error" }).to_string();
+                    message.push_str("\n\n");
                     session.write(packet::new_packet(Some(message.as_bytes().to_vec())));
                     return session::SessionStatus::Open;
                 },
@@ -38,7 +39,8 @@ fn run_command(session: &mut impl session::Session, request: Value, cmd: fn(Valu
             return session::SessionStatus::Open;
         },
         Err(_) => {
-            let message = "error\n\n";
+            let mut message = json!({ "result" : "error" }).to_string();
+            message.push_str("\n\n");
             session.write(packet::new_packet(Some(message.as_bytes().to_vec())));
             return session::SessionStatus::Open;
         },

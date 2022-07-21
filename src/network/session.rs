@@ -49,7 +49,9 @@ impl Session for UserSession {
                 if size == 0 { 
                     return Ok((packet::new_packet(None), SessionStatus::Closed))
                 }
-                else if String::from_utf8(self.data[0..size].to_vec()).unwrap() == "exit\n" {
+                let mut message =  String::from_utf8(self.data[0..size].to_vec()).unwrap();
+                message.retain(|c| !c.is_whitespace() && c != '\n');
+                if message == "{\"command\":\"exit\"}" {
                     return Ok((packet::new_packet(None), SessionStatus::Closed))
                 }
 
