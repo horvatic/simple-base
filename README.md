@@ -14,7 +14,9 @@ example: `{ "command" : "where", "id": "f3659469-164f-4464-a423-f49aa53ed677" }`
 
 example: `{ "command" : "delete", "id" : "f3659469-164f-4464-a423-f49aa53ed677" }`
 
-- update: Not working
+- update: Update Data
+
+example `{ "command" : "update", "id" : "fcd89674-690a-4ca9-b164-e1acabddfdd3", "data" : ["goodbye", "tttt", "234" ] }`
 
 example: 
 ## Testing
@@ -29,6 +31,6 @@ curl -v telnet://127.0.0.1:8080
 { "command" : "delete", "id" : "f3659469-164f-4464-a423-f49aa53ed677" }        
 {"result":"record deleted"}
 
-{ "command" : "update" }
-{"result":"can not run update. Please use where, delete, insert"}
+{ "command" : "update", "id" : "fcd89674-690a-4ca9-b164-e1acabddfdd3", "data" : ["goodbye", "tttt", "234" ] }
+{"result":"id fcd89674-690a-4ca9-b164-e1acabddfdd3"}
 ```
